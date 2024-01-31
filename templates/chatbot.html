@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Chatbot</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            margin: 0px !important;
+            color: #333;
+            background-color: #AAC3C4;
+            width: 92%;
+            font-family: 'Aptos', sans-serif;
+        }
+
+        .form-container {
+            max-width: 800px;
+            margin: auto; /* Center the form container */
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            background-color: #f9f9f9;
+            margin-top: 60px;
+        }
+
+        form {
+            margin-bottom: 15px;
+        }
+
+        input[type="text"] {
+            padding: 10px;
+            width: 90%;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #CCEDED;
+            font-family: 'Aptos', sans-serif;
+        }
+
+        .generate-button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: #3498db;
+            color: #fff;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            transition: background-color 0.3s ease;
+        }
+
+        .chat-area {
+            width: 90%;
+            height: 490px;
+            border-radius: 5px;
+            background-color: #CCEDED;
+            font-size: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            line-height: 1.6;
+            font-family: 'Aptos', sans-serif;
+            margin: 20px auto;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .message {
+            max-width: 70%;
+            margin: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            clear: both;
+            word-wrap: break-word;
+        }
+
+        .user {
+            float: right;
+            background-color: #DCF8C6;
+        }
+
+        .bot {
+            float: left;
+            background-color: #E8E8E8;
+        }
+        
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="form-container">
+            <div class="chat-area" id="chat-area"></div>
+            <form class="form-inline" id="chat-form">
+                <button title="speakQuestion" class="generate-button" id="speech-btn">
+                    <i class="fas fa-microphone"></i>Speak
+                </button>
+                <button title="Listen Answer" class="generate-button" id="speakButton">
+                    <i class="fas fa-play-circle"></i>Listen
+                </button>
+                <input type="text" class="form-control" id="user-input" placeholder="Type your Query..." required>
+                <button type="submit" title="send" class="generate-button">
+                    &uarr;
+                </button>
+                <button title="ClearChat" class="generate-button" onclick="clearChatArea()">
+                    <i class="fas fa-trash-alt"></i>Clear
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.10.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <script>
+        // Local Chatbot Functions
+        const chatForm = document.getElementById('chat-form');
+        const userInput = document.getElementById('user-input');
+        const chatArea = document.getElementById('chat-area');
+        const speakButton = document.getElementById('speakButton');
+        const speechBtn = document.getElementById('speech-btn');
+        let userRole = '';
+        speechBtn.addEventListener('click', function() {
+            startSpeechToText();
+        });
+        chatForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const userMessage = userInput.value;
+            userInput.value = '';
+            chatArea.innerHTML += `<div class="message user"><strong>You:</strong> ${userMessage}<br></div>`;
+            
+            
+            fetch('/local_chat', {
+                method: 'POST',
+                body: JSON.stringify({ input_text: userMessage}),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const messageContainer = document.createElement('div');
+                messageContainer.className = 'message bot';
+                messageContainer.innerHTML = `<strong>SamSanvad:</strong> ${data}<br>`;
+                
+                //const speakButton = document.createElement('button');
+                //speakButton.innerHTML = `<i class="fa fa-play-circle"></i>`;
+                speakButton.onclick = function() {
+                    speakText(data);
+                };
+                //messageContainer.appendChild(speakButton);
+                chatArea.appendChild(messageContainer);
+                chatArea.scrollTop = chatArea.scrollHeight;
+                //chatArea.appendChild(speakButton);
+            });
+            
+        });
+        function sendMessage(message) {        
+            chatArea.innerHTML += `<div class="message user"><strong>You:</strong> ${message}<br></div>`;
+           
+            fetch('/local_chat', {
+                method: 'POST',
+                body: JSON.stringify({ input_text: message}),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const messageContainer = document.createElement('div');
+                messageContainer.className = 'message bot';
+                messageContainer.innerHTML = `<strong>SAMSANVAD:</strong> ${data}<br>`;
+                speakButton.onclick = function() {
+                    speakText(data);
+                };
+                speakText(data);
+                //messageContainer.appendChild(speakButton);
+                chatArea.appendChild(messageContainer);
+                chatArea.scrollTop = chatArea.scrollHeight;
+
+            });
+        
+            userInput.value = '';
+        }
+        function speakText(text) {
+            var utterance = new SpeechSynthesisUtterance(text);
+            window.speechSynthesis.speak(utterance);
+        }
+        function stopSpeaking() {
+            window.speechSynthesis.cancel();
+            console.log("Speaking stopped");
+        }
+        document.addEventListener("keydown", function (event) {
+            if (event.keyCode === 27) {
+                stopSpeaking();
+            }
+        });        
+        function startSpeechToText() {
+            var recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition || window.mozSpeechRecognition || window.msSpeechRecognition)();
+            recognition.lang = 'en-US';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.onresult = function(event) {
+                var transcript = event.results[0][0].transcript;
+                sendMessage(transcript);
+            };
+
+            recognition.onerror = function(event) {
+                console.error("Speech recognition error:", event.error);
+            };
+
+            recognition.onend = function() {
+                console.log("Speech recognition ended.");
+            };
+
+            recognition.start();
+        }
+    
+
+        function clearChatArea() {
+            const chatArea = document.getElementById('chat-area');
+            chatArea.innerHTML = '';
+        }     
+    </script>
+</body>
+</html>
